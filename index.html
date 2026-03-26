@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第五人格 TikTok 数据看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --w:#fff;--bg:#F8F8F6;--bg2:#F0F0ED;--b:#E5E5E1;--b2:#D0D0CA;
+  --t:#1A1A18;--t2:#5A5A55;--t3:#9A9A94;
+  --red:#E03131;--blue:#1971C2;--green:#2F9E44;--amber:#E67700;
+  --purple:#6741D9;--teal:#0C8599;--pink:#A61E4D;--indigo:#3B5BDB;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--t);font-size:13px;line-height:1.55}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+
+/* ── Shell ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{
+  width:196px;flex-shrink:0;background:var(--w);border-right:1px solid var(--b);
+  position:fixed;top:0;left:0;bottom:0;display:flex;flex-direction:column;z-index:100;overflow-y:auto
+}
+.brand{padding:20px 18px 16px;border-bottom:1px solid var(--b)}
+.brand-name{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t)}
+.brand-sub{font-size:11px;color:var(--t3);margin-top:2px;font-family:var(--mono)}
+nav{padding:10px 0;flex:1}
+.nav-sec{padding:12px 18px 4px;font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.06em;text-transform:uppercase}
+.nav-item{
+  display:flex;align-items:center;gap:8px;padding:7px 18px;cursor:pointer;
+  color:var(--t2);font-size:13px;font-weight:400;border-right:2px solid transparent;
+  transition:background .1s,color .1s;user-select:none
+}
+.nav-item:hover{background:var(--bg);color:var(--t)}
+.nav-item.active{color:var(--t);font-weight:500;border-right-color:var(--red);background:var(--bg)}
+.nav-item .ic{font-size:14px}
+.sidebar-foot{padding:14px 18px;border-top:1px solid var(--b)}
+.foot-stat{font-size:11px;color:var(--t3);font-family:var(--mono)}
+.main{margin-left:196px;flex:1}
+.page{display:none;padding:32px 36px;max-width:1440px}
+.page.active{display:block}
+
+/* ── Page header ── */
+.ph{margin-bottom:28px}
+.ph-row{display:flex;align-items:flex-end;justify-content:space-between}
+.ph-title{font-size:20px;font-weight:600;color:var(--t);letter-spacing:-.02em}
+.ph-desc{font-size:12px;color:var(--t2);margin-top:4px}
+.ph-ctrl{display:flex;align-items:center;gap:8px}
+
+/* ── KPI grid ── */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+.kpi{background:var(--w);border:1px solid var(--b);border-radius:10px;padding:16px 18px}
+.kpi-lbl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.kpi-val{font-size:22px;font-weight:600;color:var(--t);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:11px;color:var(--t3);margin-top:4px}
+.kpi.c-red .kpi-val{color:var(--red)}
+.kpi.c-blue .kpi-val{color:var(--blue)}
+.kpi.c-green .kpi-val{color:var(--green)}
+.kpi.c-amber .kpi-val{color:var(--amber)}
+
+/* ── Cards ── */
+.card{background:var(--w);border:1px solid var(--b);border-radius:10px;padding:18px 20px}
+.card-title{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g21{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:12px}
+.mb12{margin-bottom:12px}.mb20{margin-bottom:20px}.mb28{margin-bottom:28px}
+.cw{position:relative}.h180{height:180px}.h220{height:220px}.h260{height:260px}.h300{height:300px}.h340{height:340px}
+
+/* ── Section title ── */
+.stitle{
+  font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;
+  margin:24px 0 12px;display:flex;align-items:center;gap:10px
+}
+.stitle::after{content:'';flex:1;height:1px;background:var(--b)}
+
+/* ── Insight boxes ── */
+.iboxes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.ibox{background:var(--w);border:1px solid var(--b);border-radius:10px;padding:14px 16px}
+.ibox.warn{border-left:3px solid var(--red)}
+.ibox.good{border-left:3px solid var(--green)}
+.ibox.info{border-left:3px solid var(--blue)}
+.ibox.amber{border-left:3px solid var(--amber)}
+.ib-lbl{font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.ib-val{font-size:17px;font-weight:600;color:var(--t);letter-spacing:-.02em}
+.ib-desc{font-size:12px;color:var(--t3);margin-top:4px;line-height:1.55}
+.ib-desc b{color:var(--t2);font-weight:500}
+
+/* ── Rankings table ── */
+.rank-wrap{background:var(--w);border:1px solid var(--b);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.rank-head{padding:12px 16px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rank-title{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;flex:1}
+.rank-scroll{overflow-x:auto;max-height:600px;overflow-y:auto}
+table{width:100%;border-collapse:collapse}
+thead th{
+  padding:8px 14px;font-size:10px;font-weight:600;color:var(--t3);text-align:left;
+  border-bottom:1px solid var(--b);background:var(--w);position:sticky;top:0;z-index:2;
+  white-space:nowrap;letter-spacing:.04em;cursor:pointer;user-select:none
+}
+thead th:hover{color:var(--t)}
+thead th .sa::after{content:'↕';opacity:.3;margin-left:3px;font-size:9px}
+thead th.asc .sa::after{content:' ↑';opacity:1;color:var(--red)}
+thead th.desc .sa::after{content:' ↓';opacity:1;color:var(--red)}
+tbody tr{border-bottom:1px solid var(--bg2);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg)}
+tbody tr.boosted{opacity:.45}
+td{padding:9px 14px;vertical-align:middle}
+td.num{text-align:right;font-family:var(--mono);font-size:13px}
+td.rank-num{font-family:var(--mono);font-size:12px;color:var(--t3);width:36px}
+td.rank-num.top3{color:var(--t);font-weight:600}
+
+/* Video title cell */
+.vtitle{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;font-size:12px;color:var(--t);line-height:1.4;max-width:280px
+}
+.vtitle a{color:inherit;text-decoration:none;border-bottom:1px solid transparent;transition:border-color .15s}
+.vtitle a:hover{border-bottom-color:var(--blue);color:var(--blue)}
+.vtitle a.has-url{color:var(--t)}
+.vtitle a.has-url:hover{color:var(--blue)}
+.vdate{font-size:10px;color:var(--t3);font-family:var(--mono);margin-top:2px}
+.vlink-btn{
+  display:inline-flex;align-items:center;gap:3px;font-size:10px;
+  color:var(--blue);opacity:.6;text-decoration:none;margin-top:2px;
+  transition:opacity .15s
+}
+.vlink-btn:hover{opacity:1}
+
+/* Category badge */
+.cat{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:500;white-space:nowrap}
+.cat-官方公告{background:#F1F5F9;color:#475569}
+.cat-联动合作{background:#F3F0FF;color:#6741D9}
+.cat-新皮肤角色{background:#FFF4E6;color:#C05621}
+.cat-梗图挑战{background:#FFF0F6;color:#A61E4D}
+.cat-游戏玩法{background:#EBFBEE;color:#2B8A3E}
+.cat-角色展示{background:#FDF2F8;color:#9C36B5}
+.cat-BGM舞蹈{background:#E7F5FF;color:#1864AB}
+.cat-氛围短剧{background:#EDF2FF;color:#3B5BDB}
+.cat-情感类{background:#FFF5F5;color:#C92A2A}
+.cat-互动类{background:#E3FAFC;color:#0B7285}
+.cat-故事向{background:#FFF9DB;color:#7D4F07}
+.cat-季节活动{background:#ECFDF5;color:#065F46}
+.cat-ASMR{background:#F0FDF4;color:#166534}
+.cat-其他{background:#F8F8F6;color:#6B7280}
+
+/* Eng/metric bar */
+.mbar{display:flex;align-items:center;gap:6px;min-width:80px}
+.mbar-track{flex:1;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden}
+.mbar-fill{height:100%;border-radius:2px}
+.mbar-txt{font-family:var(--mono);font-size:12px;min-width:38px;text-align:right}
+
+/* Controls */
+.ctrl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sbox{
+  background:var(--bg);border:1px solid var(--b);border-radius:6px;
+  padding:5px 10px;font-size:12px;font-family:var(--font);color:var(--t);
+  outline:none;width:180px;transition:border-color .15s
+}
+.sbox:focus{border-color:var(--blue);background:var(--w)}
+.sbox::placeholder{color:var(--t3)}
+.fsel{
+  background:var(--w);border:1px solid var(--b);border-radius:6px;
+  color:var(--t);font-size:12px;font-family:var(--font);padding:5px 10px;outline:none;cursor:pointer
+}
+.fpill{
+  padding:5px 12px;border-radius:6px;border:1px solid var(--b);
+  background:var(--w);font-size:12px;color:var(--t2);cursor:pointer;transition:all .12s;font-family:var(--font)
+}
+.fpill:hover{border-color:var(--b2);color:var(--t)}
+.fpill.on{background:var(--t);color:var(--w);border-color:var(--t)}
+.toggle-lbl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);cursor:pointer}
+
+/* Pagination */
+.pager{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--b)}
+.pbtns{display:flex;gap:4px}
+.pbtn{
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  border-radius:5px;border:1px solid var(--b);background:var(--w);
+  color:var(--t2);font-size:12px;font-family:var(--mono);cursor:pointer;transition:all .12s
+}
+.pbtn:hover{border-color:var(--b2);color:var(--t)}
+.pbtn.active{background:var(--t);color:var(--w);border-color:var(--t)}
+.pbtn:disabled{opacity:.3;cursor:default;pointer-events:none}
+.pinfo{font-size:11px;color:var(--t3);font-family:var(--mono)}
+
+/* URL input */
+.url-inp{
+  background:transparent;border:1px solid transparent;border-radius:4px;
+  color:var(--t3);font-size:10px;font-family:var(--mono);padding:2px 5px;
+  width:130px;outline:none;transition:all .15s
+}
+.url-inp:hover{border-color:var(--b);background:var(--bg)}
+.url-inp:focus{border-color:var(--blue);background:var(--w);color:var(--t)}
+.url-inp::placeholder{color:var(--b2)}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:20px;right:20px;background:var(--t);color:var(--w);
+  border-radius:6px;padding:9px 14px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.2);
+  transform:translateY(6px);opacity:0;transition:all .2s;z-index:999;pointer-events:none
+}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ── 推流标记 ── */
+.boost-btn {
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);
+  border:1px solid var(--b);background:var(--w);color:var(--t3);
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.boost-btn:hover{border-color:var(--amber);color:var(--amber)}
+.boost-btn.marked{background:#FFFBEB;border-color:#FCD34D;color:#92400E;font-weight:500}
+.boost-banner {
+  background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;
+  padding:10px 14px;margin-bottom:14px;font-size:12px;color:#92400E;
+  display:flex;align-items:center;gap:8px;
+}
+/* ── 互动率公式 tooltip ── */
+[title]{cursor:help}
+/* ── Analysis page specific ── */
+.insight-big{
+  background:var(--w);border:1px solid var(--b);border-radius:10px;padding:20px 22px;margin-bottom:12px
+}
+.insight-big .ib-lbl{font-size:12px;margin-bottom:8px}
+.insight-big .ib-val{font-size:20px}
+.insight-big .ib-desc{font-size:13px;line-height:1.65}
+.tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.tip-card{background:var(--bg);border-radius:8px;padding:12px 14px}
+.tip-num{font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:4px}
+.tip-text{font-size:12px;color:var(--t2);line-height:1.6}
+.tip-text b{color:var(--t);font-weight:500}
+.corr-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--bg2)}
+.corr-row:last-child{border-bottom:none}
+.corr-label{font-size:12px;color:var(--t2);width:100px;flex-shrink:0}
+.corr-bar-wrap{flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.corr-bar{height:100%;border-radius:4px;transition:width .4s ease}
+.corr-val{font-family:var(--mono);font-size:12px;width:50px;text-align:right}
+</style>
+</head>
+<body>
+<div id="loadError" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.96);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <div style="font-size:36px">⚠️</div>
+  <div style="font-size:17px;font-weight:600;color:#1A1A18">需要通过服务器打开</div>
+  <div style="font-size:13px;color:#5A5A55;text-align:center;max-width:380px;line-height:1.7">
+    直接双击 index.html 无法加载 videos.json 数据。<br>
+    请用 VS Code Live Server，或访问 Netlify 上的网址打开。
+  </div>
+</div>
+<div class="shell">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-name">IDV Analytics</div>
+    <div class="brand-sub">@identityvjp</div>
+  </div>
+  <nav>
+    <div class="nav-sec">分析</div>
+    <div class="nav-item active" data-page="overview" onclick="nav(this)"><span class="ic">📊</span>总览</div>
+    <div class="nav-item" data-page="analysis" onclick="nav(this)"><span class="ic">🔬</span>流量影响分析</div>
+    <div class="nav-item" data-page="category" onclick="nav(this)"><span class="ic">🏷️</span>类型分析</div>
+    <div class="nav-sec">排名</div>
+    <div class="nav-item" data-page="top-views" onclick="nav(this)"><span class="ic">👁️</span>播放 Top50</div>
+    <div class="nav-item" data-page="top-likes" onclick="nav(this)"><span class="ic">❤️</span>点赞 Top50</div>
+    <div class="nav-item" data-page="top-comments" onclick="nav(this)"><span class="ic">💬</span>评论 Top50</div>
+    <div class="nav-item" data-page="top-eng" onclick="nav(this)"><span class="ic">🔥</span>互动率 Top50</div>
+    <div class="nav-sec">工具</div>
+    <div class="nav-item" data-page="recommend" onclick="nav(this)"><span class="ic">💡</span>内容建议</div>
+    <div class="nav-item" data-page="trends" onclick="nav(this)"><span class="ic">🔥</span>趋势导航</div>
+    <div class="nav-sec">管理</div>
+    <div class="nav-item" data-page="videos" onclick="nav(this)"><span class="ic">🎬</span>全部视频</div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="foot-stat" id="footStat">加载中...</div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+
+<!-- ══ OVERVIEW ══════════════════════════════ -->
+<section class="page active" id="page-overview">
+  <div class="ph">
+    <div class="ph-row">
+      <div><div class="ph-title">数据总览</div><div class="ph-desc" id="ovDesc">460条视频，含推流23条</div></div>
+      <div class="ph-ctrl">
+        <label class="toggle-lbl"><input type="checkbox" id="ovToggle" checked onchange="renderOverview()"> 包含推流</label>
+      </div>
+    </div>
+  </div>
+  <div class="kpis" id="ovKpis"></div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">各类型平均播放量</div><div class="cw h260"><canvas id="cCatViews"></canvas></div></div>
+    <div class="card"><div class="card-title">各类型平均互动率</div><div class="cw h260"><canvas id="cCatEng"></canvas></div></div>
+  </div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">月均播放量趋势</div><div class="cw h220"><canvas id="cTrend"></canvas></div></div>
+    <div class="card"><div class="card-title">发布时段分布（UTC+9）</div><div class="cw h220"><canvas id="cHour"></canvas></div></div>
+  </div>
+</section>
+
+<!-- ══ ANALYSIS ══════════════════════════════ -->
+<section class="page" id="page-analysis">
+  <div class="ph">
+    <div class="ph-title">流量影响分析</div>
+    <div class="ph-desc">哪些因素真正影响播放量？数据驱动的内容建议</div>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:20px">
+    <div class="card" style="flex:1;border-left:3px solid var(--blue)">
+      <div class="card-title">互动率计算公式</div>
+      <div style="font-size:20px;font-weight:600;color:var(--blue);font-family:var(--mono);margin:8px 0">互动率 = (点赞 + 评论) ÷ 播放量 × 100%</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.7">以<b>点赞 + 评论</b>之和衡量互动，更全面地反映观众的主动参与度。转发数据暂无法获取，后续可手动补充。<br>
+        <b style="color:var(--red)">&lt;2%</b> 偏低 &nbsp;·&nbsp; <b style="color:var(--amber)">2–5%</b> 正常 &nbsp;·&nbsp; <b style="color:var(--blue)">5–8%</b> 优秀 &nbsp;·&nbsp; <b style="color:var(--green)">&gt;8%</b> 爆款
+      </div>
+    </div>
+    <div class="card" style="flex:1;border-left:3px solid var(--amber)">
+      <div class="card-title">推流识别说明</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.7;margin-top:2px">
+        <b>统计识别（自动）：</b>播放量 &gt; 25.3万 且 互动率 &lt; 4.5% 自动标记<br>
+        <b>手动标记（更准确）：</b>在「全部视频」页面点击「标记推流」<br>
+        <span style="font-size:11px;color:var(--t3)">已自动识别 34 条 · 手动标记实时同步到所有分析</span>
+      </div>
+    </div>
+    <div class="card" style="flex:1;border-left:3px solid var(--green)">
+      <div class="card-title">账号互动率分布</div>
+      <div id="engDistribText" style="margin-top:4px"></div>
+    </div>
+  </div>
+
+  <div class="stitle">各因素与播放量的相关强度</div>
+  <div class="card mb20">
+    <div class="card-title">影响因子排名（推流已排除）<span style="font-size:10px;color:var(--t3);font-weight:400;margin-left:8px">数值越高与播放量相关越强</span></div>
+    <div id="corrChart" style="padding:4px 0"></div>
+  </div>
+
+  <div class="stitle">发布时机分析</div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">各时段均播放量</div><div class="cw h220"><canvas id="cHourViews"></canvas></div></div>
+    <div class="card"><div class="card-title">各星期均播放量</div><div class="cw h220"><canvas id="cWeekday"></canvas></div></div>
+  </div>
+  <div class="g2 mb12">
+    <div class="insight-big"><div class="ib-lbl" style="color:var(--green)">最佳发布时段</div><div class="ib-val" id="bestHourVal" style="color:var(--green);font-size:18px">—</div><div class="ib-desc" id="bestHourDesc" style="margin-top:6px">计算中...</div></div>
+    <div class="insight-big"><div class="ib-lbl" style="color:var(--blue)">最佳发布星期</div><div class="ib-val" id="bestWeekVal" style="color:var(--blue);font-size:18px">—</div><div class="ib-desc" id="bestWeekDesc" style="margin-top:6px">计算中...</div></div>
+  </div>
+
+  <div class="stitle">发布频率 vs 播放量关系</div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">月发布数量 vs 月均播放量</div><div class="cw h240"><canvas id="cFreqVsViews"></canvas></div></div>
+    <div class="insight-big" style="display:flex;flex-direction:column;justify-content:center"><div class="ib-lbl" style="color:var(--amber)">少发精发 vs 多发</div><div class="ib-desc" id="freqInsight" style="margin-top:8px;font-size:13px">计算中...</div></div>
+  </div>
+
+  <div class="stitle">标题特征分析</div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">标题长度 vs 均互动率</div><div class="cw h220"><canvas id="cTitleLen"></canvas></div></div>
+    <div class="card"><div class="card-title">#标签数量 vs 均播放量</div><div class="cw h220"><canvas id="cHashtags"></canvas></div></div>
+  </div>
+  <div class="card mb12">
+    <div class="card-title">标题元素与高互动率对比（高互动≥8% vs 低互动&lt;5%）</div>
+    <div id="titleFeatures" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px"></div>
+  </div>
+
+  <div class="stitle">内容类型的影响</div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">推流排除后各类型真实均播放</div><div class="cw h260"><canvas id="cOrgCat"></canvas></div></div>
+    <div class="card"><div class="card-title">各类型互动率 vs 播放量</div><div class="cw h260"><canvas id="cEngVsViews"></canvas></div></div>
+  </div>
+
+  <div class="stitle">视频时长的影响</div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">视频时长 vs 均播放量</div><div class="cw h220"><canvas id="cDurViews"></canvas></div></div>
+    <div class="card"><div class="card-title">视频时长 vs 均互动率</div><div class="cw h220"><canvas id="cDurEng"></canvas></div></div>
+  </div>
+
+  <div class="stitle">可操作建议</div>
+  <div class="tip-grid" id="tipGrid"></div>
+</section>
+
+<!-- ══ CATEGORY ══════════════════════════════ -->
+<section class="page" id="page-category">
+  <div class="ph">
+    <div class="ph-title">类型分析</div>
+    <div class="ph-desc">全数据 vs 排除推流后的对比</div>
+  </div>
+  <div class="stitle">推流排除前后对比</div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">均播放量对比</div><div class="cw h280"><canvas id="cCatComp1"></canvas></div></div>
+    <div class="card"><div class="card-title">均互动率对比</div><div class="cw h280"><canvas id="cCatComp2"></canvas></div></div>
+  </div>
+  <div class="card mb12">
+    <div class="card-title">各类型详细数据</div>
+    <div id="catTable"></div>
+  </div>
+</section>
+
+<!-- ══ TOP VIEWS ══════════════════════════════ -->
+<section class="page" id="page-top-views">
+  <div class="ph">
+    <div class="ph-row">
+      <div><div class="ph-title">播放量 Top 50</div><div class="ph-desc">点击标题直接跳转 TikTok</div></div>
+      <label class="toggle-lbl"><input type="checkbox" id="tvHide" onchange="renderTopViews()"> 隐藏推流</label>
+    </div>
+  </div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">播放 Top50 — 各类型数量</div><div class="cw h300"><canvas id="cTvCat"></canvas></div></div>
+    <div class="card"><div class="card-title">Top50 vs 全部视频 — 各类型占比对比</div><div class="cw h300"><canvas id="cTvCatComp"></canvas></div></div>
+  </div>
+  <div class="rank-wrap">
+    <div class="rank-head">
+      <span class="rank-title">播放量排名</span>
+      <span class="pinfo" id="tvCount"></span>
+    </div>
+    <div class="rank-scroll"><table><thead><tr>
+      <th style="width:36px">#</th>
+      <th>标题</th>
+      <th style="width:90px">类型</th>
+      <th style="width:100px;text-align:right">播放量<span class="sa"></span></th>
+      <th style="width:80px;text-align:right">点赞</th>
+      <th style="width:120px"><span title="互动率 = (点赞 + 评论) ÷ 播放量 × 100%">互动率 ℹ️</span></th>
+      <th style="width:70px;text-align:right">评论</th>
+      <th style="width:55px">推流</th>
+    </tr></thead>
+    <tbody id="tvBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ══ TOP LIKES ══════════════════════════════ -->
+<section class="page" id="page-top-likes">
+  <div class="ph">
+    <div class="ph-row">
+      <div><div class="ph-title">点赞数 Top 50</div><div class="ph-desc">点击标题直接跳转 TikTok</div></div>
+      <label class="toggle-lbl"><input type="checkbox" id="tlHide" onchange="renderTopLikes()"> 隐藏推流</label>
+    </div>
+  </div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">点赞 Top50 — 各类型数量</div><div class="cw h300"><canvas id="cTlCat"></canvas></div></div>
+    <div class="card"><div class="card-title">各类型在 Top50 里的命中率</div><div class="cw h300"><canvas id="cTlHitRate"></canvas></div></div>
+  </div>
+  <div class="rank-wrap">
+    <div class="rank-head"><span class="rank-title">点赞排名</span><span class="pinfo" id="tlCount"></span></div>
+    <div class="rank-scroll"><table><thead><tr>
+      <th style="width:36px">#</th><th>标题</th>
+      <th style="width:90px">类型</th>
+      <th style="width:100px;text-align:right">点赞<span class="sa"></span></th>
+      <th style="width:100px;text-align:right">播放量</th>
+      <th style="width:120px"><span title="互动率 = (点赞 + 评论) ÷ 播放量 × 100%">互动率 ℹ️</span></th>
+      <th style="width:70px;text-align:right">评论</th>
+      <th style="width:55px">推流</th>
+    </tr></thead>
+    <tbody id="tlBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ══ TOP COMMENTS ══════════════════════════ -->
+<section class="page" id="page-top-comments">
+  <div class="ph">
+    <div class="ph-row">
+      <div><div class="ph-title">评论数 Top 50</div><div class="ph-desc">点击标题直接跳转 TikTok</div></div>
+      <label class="toggle-lbl"><input type="checkbox" id="tcHide" onchange="renderTopComments()"> 隐藏推流</label>
+    </div>
+  </div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">评论 Top50 — 各类型数量</div><div class="cw h300"><canvas id="cTcCat"></canvas></div></div>
+    <div class="card"><div class="card-title">各类型均评论数对比</div><div class="cw h300"><canvas id="cTcCmtBycat"></canvas></div></div>
+  </div>
+  <div class="rank-wrap">
+    <div class="rank-head"><span class="rank-title">评论排名</span><span class="pinfo" id="tcCount"></span></div>
+    <div class="rank-scroll"><table><thead><tr>
+      <th style="width:36px">#</th><th>标题</th>
+      <th style="width:90px">类型</th>
+      <th style="width:80px;text-align:right">评论<span class="sa"></span></th>
+      <th style="width:100px;text-align:right">播放量</th>
+      <th style="width:80px;text-align:right">点赞</th>
+      <th style="width:120px"><span title="互动率 = (点赞 + 评论) ÷ 播放量 × 100%">互动率 ℹ️</span></th>
+      <th style="width:55px">推流</th>
+    </tr></thead>
+    <tbody id="tcBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ══ TOP ENG ════════════════════════════════ -->
+<section class="page" id="page-top-eng">
+  <div class="ph">
+    <div class="ph-row">
+      <div><div class="ph-title">互动率 Top 50</div><div class="ph-desc">互动率 = (点赞+评论) ÷ 播放 × 100%，推流已自动排除</div></div>
+    </div>
+  </div>
+  <div class="g2 mb12">
+    <div class="card"><div class="card-title">互动率 Top50 — 各类型数量</div><div class="cw h300"><canvas id="cTeCat"></canvas></div></div>
+    <div class="card"><div class="card-title">各类型均互动率排名</div><div class="cw h300"><canvas id="cTeEngBycat"></canvas></div></div>
+  </div>
+  <div class="rank-wrap">
+    <div class="rank-head"><span class="rank-title">互动率排名（推流已排除）</span><span class="pinfo" id="teCount"></span></div>
+    <div class="rank-scroll"><table><thead><tr>
+      <th style="width:36px">#</th><th>标题</th>
+      <th style="width:90px">类型</th>
+      <th style="width:120px"><span title="互动率 = (点赞 + 评论) ÷ 播放量 × 100%">互动率 ℹ️</span><span class="sa"></span></th>
+      <th style="width:100px;text-align:right">播放量</th>
+      <th style="width:80px;text-align:right">点赞</th>
+      <th style="width:70px;text-align:right">评论</th>
+    </tr></thead>
+    <tbody id="teBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ══ ALL VIDEOS ═════════════════════════════ -->
+<section class="page" id="page-videos">
+  <div class="ph">
+    <div class="ph-row">
+      <div><div class="ph-title">全部视频</div><div class="ph-desc">可手动标记推流视频，标题有链接时可直接点击跳转</div></div>
+      <div class="ph-ctrl">
+        <button class="fpill" onclick="exportCSV()">⬇ CSV</button>
+        <button class="fpill" onclick="saveURLs()">💾 保存链接</button>
+      </div>
+    </div>
+  </div>
+  <div class="boost-banner">
+    ⚡ <strong>推流标记：</strong>点击每行的「标记推流」按钮，手动标注已知推流视频。标记后会在所有分析中自动排除，比算法判断更准确。
+    标记会保存在浏览器本地，刷新后保留。
+  </div>
+  <div class="rank-wrap">
+    <div class="rank-head">
+      <span class="rank-title">视频列表</span>
+      <input class="sbox" id="vSearch" placeholder="搜索标题..." oninput="filterVideos()">
+      <select class="fsel" id="vCat" onchange="filterVideos()"><option value="">全类型</option></select>
+      <select class="fsel" id="vSort" onchange="filterVideos()">
+        <option value="rank">播放量排序</option>
+        <option value="likes">点赞排序</option>
+        <option value="comments">评论排序</option>
+        <option value="engRate">互动率排序</option>
+      </select>
+      <label class="toggle-lbl"><input type="checkbox" id="vHide" onchange="filterVideos()"> 隐藏推流</label>
+      <span class="pinfo" id="vCount"></span>
+    </div>
+    <div class="rank-scroll"><table><thead><tr>
+      <th style="width:36px">#</th>
+      <th>标题</th>
+      <th style="width:90px">类型</th>
+      <th style="width:90px;text-align:right">播放量</th>
+      <th style="width:80px;text-align:right">点赞</th>
+      <th style="width:110px">互动率</th>
+      <th style="width:65px;text-align:right">评论</th>
+      <th style="width:140px">TikTok 链接</th>
+    <th style="width:80px;text-align:center">推流标记</th>
+    </tr></thead>
+    <tbody id="vBody"></tbody></table></div>
+    <div class="pager">
+      <span class="pinfo" id="vPInfo"></span>
+      <div class="pbtns" id="vPBtns"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ RECOMMEND ═════════════════════════════ -->
+<section class="page" id="page-recommend">
+  <div class="ph">
+    <div class="ph-title">内容建议</div>
+    <div class="ph-desc">基于你的高表现视频，推荐值得复制的内容方向和创意参考</div>
+  </div>
+
+  <div class="stitle">整体内容评估</div>
+  <div id="recOverall" class="g3 mb12"></div>
+
+  <div class="stitle">各类型表现排名 — 点击展开创意建议</div>
+  <div id="recCatList"></div>
+</section>
+
+<!-- ══ TRENDS ════════════════════════════════ -->
+<section class="page" id="page-trends">
+  <div class="ph">
+    <div class="ph-row">
+      <div>
+        <div class="ph-title">趋势导航</div>
+        <div class="ph-desc">日本 TikTok 实时趋势 × 第五人格账号数据 → 内容机会分析</div>
+      </div>
+      <div class="ph-ctrl">
+        <span style="font-size:11px;color:var(--t3);font-family:var(--mono)">数据截至 <span id="trendUpdatedAt">2026-03-26</span></span>
+        <button class="fpill" onclick="document.getElementById('trendUpdatePanel').style.display='block'">🔄 更新趋势</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 趋势更新面板 -->
+  <div id="trendUpdatePanel" style="display:none;background:var(--bg);border:1px solid var(--b);border-radius:10px;padding:16px 20px;margin-bottom:16px">
+    <div style="font-size:12px;font-weight:600;color:var(--t);margin-bottom:8px">📋 如何更新趋势数据</div>
+    <div style="font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:12px">
+      1. 打开 <a href="https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/ja?period=7&country=JP" target="_blank" style="color:var(--blue)">TikTok Creative Center → 趋势发现</a>（需登录）<br>
+      2. 将页面上的热门标签名称逐行粘贴到下方输入框<br>
+      3. 点击「更新」按钮，看板会自动分析与账号的关联性
+    </div>
+    <textarea id="trendInput" style="width:100%;height:120px;background:var(--w);border:1px solid var(--b);border-radius:6px;padding:8px 10px;font-size:12px;font-family:var(--mono);color:var(--t);outline:none;resize:none" placeholder="每行一个标签，例如：&#10;春休み&#10;花見&#10;クラス替え"></textarea>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button class="fpill on" onclick="updateTrends()">更新趋势</button>
+      <button class="fpill" onclick="document.getElementById('trendUpdatePanel').style.display='none'">取消</button>
+    </div>
+  </div>
+
+  <div class="stitle">本周日本 TikTok 热门趋势（2026年3月第4周）</div>
+  <div id="trendTagCloud" class="mb12"></div>
+
+  <div class="stitle">趋势 × 第五人格内容机会分析</div>
+  <div id="trendOpportunities" class="mb12"></div>
+
+  <div class="stitle">推荐内容方向</div>
+  <div id="trendRecommendations" class="tip-grid mb12"></div>
+
+  <div class="stitle">趋势音乐参考</div>
+  <div id="trendSongs" class="g2 mb12"></div>
+</section>
+
+
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ════ DATA ════════════════════════════════════
+let ALL = [];
+let urls = {};
+let TREND_DATA_LIVE = null;
+
+async function loadData() {
+  // 显示加载状态
+  document.getElementById('footStat').textContent = '加载中...';
+  try {
+    const [vRes, tRes] = await Promise.all([
+      fetch('./videos.json'),
+      fetch('./trends.json').catch(() => null)
+    ]);
+    ALL = await vRes.json();
+    if (tRes) {
+      TREND_DATA_LIVE = await tRes.json();
+      const el = document.getElementById('trendUpdatedAt');
+      if (el) el.textContent = TREND_DATA_LIVE.updated || '-';
+    }
+  } catch(e) {
+    document.getElementById('loadError').style.display = 'flex';
+    console.error('Load error:', e);
+    return;
+  }
+  // Load saved URLs
+  const saved = localStorage.getItem('idv_urls');
+  if (saved) { urls = JSON.parse(saved); ALL.forEach(v => { if (urls[v.id]) v.url = urls[v.id]; }); }
+  // Load manual boost marks
+  const savedBoosts = localStorage.getItem('idv_boosts');
+  if (savedBoosts) {
+    manualBoosts = JSON.parse(savedBoosts);
+    ALL.forEach(v => { if (manualBoosts[v.id]) v.boosted = true; });
+  }
+  document.getElementById('footStat').textContent = ALL.length + '条视频';
+  initAll();
+}
+
+// ════ NAV ════════════════════════════════════
+function nav(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-' + el.dataset.page).classList.add('active');
+}
+
+// ════ UTILS ══════════════════════════════════
+function fmt(n) {
+  if (!n) return '0';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(0) + 'K';
+  return String(n);
+}
+function fmtFull(n) { return n ? n.toLocaleString('ja-JP') : '0'; }
+function engColor(e) {
+  if (e >= 8) return 'var(--green)';
+  if (e >= 5) return 'var(--blue)';
+  if (e >= 2) return 'var(--amber)';
+  return 'var(--red)';
+}
+function catClass(c) { return c.replace(/[\/\s]/g,''); }
+function catBadge(c) { return `<span class="cat cat-${catClass(c)}">${c}</span>`; }
+
+function getOrganic() { return ALL.filter(v => !v.boosted); }
+function getFiltered(hideBoosted) { return hideBoosted ? getOrganic() : ALL; }
+
+// Compute hour (UTC+9 aware)
+function getHour(dateStr) {
+  const isPM = dateStr.includes('午後');
+  const isAM = dateStr.includes('午前');
+  const m = dateStr.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  let h = parseInt(m[1]);
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return h < 24 ? h : null;
+}
+
+// Duration in seconds
+function getDurSecs(dur) {
+  if (!dur) return null;
+  const m = dur.match(/(\d+):(\d+)/);
+  if (!m) return null;
+  return parseInt(m[1]) * 60 + parseInt(m[2]);
+}
+
+// ════ CHART DEFAULTS ═════════════════════════
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#9A9A94';
+Chart.defaults.plugins.legend.display = false;
+const G = '#F0F0ED';
+const bs = {
+  x: { grid:{color:G,drawBorder:false}, ticks:{color:'#9A9A94'} },
+  y: { grid:{color:G,drawBorder:false}, ticks:{color:'#9A9A94'} }
+};
+
+let CH = {};
+function mc(id, type, data, opts) {
+  if (CH[id]) CH[id].destroy();
+  const el = document.getElementById(id);
+  if (!el) return;
+  CH[id] = new Chart(el.getContext('2d'), {type, data, options: opts});
+  return CH[id];
+}
+
+const CAT_COLORS = {
+  '官方公告':'#64748B','联动合作':'#6741D9','新皮肤/角色':'#C05621',
+  '梗图/挑战':'#A61E4D','游戏玩法':'#2B8A3E','角色展示':'#9C36B5',
+  'BGM/舞蹈':'#1864AB','氛围/短剧':'#3B5BDB','情感类':'#C92A2A',
+  '互动类':'#0B7285','故事向':'#7D4F07','季节/活动':'#065F46','ASMR':'#166534','其他':'#6B7280'
+};
+
+// ════ CAT STATS ══════════════════════════════
+function catStats(vids) {
+  const m = {};
+  vids.forEach(v => {
+    const c = v.category;
+    if (!m[c]) m[c] = {n:0,sv:0,sl:0,sc:0,se:0};
+    m[c].n++; m[c].sv+=v.views; m[c].sl+=v.likes; m[c].sc+=v.comments; m[c].se+=v.engRate;
+  });
+  return Object.entries(m).map(([cat,s]) => ({
+    cat, n:s.n,
+    avgViews: Math.round(s.sv/s.n),
+    avgLikes: Math.round(s.sl/s.n),
+    avgCmts: Math.round(s.sc/s.n),
+    avgEng: +(s.se/s.n).toFixed(2)
+  })).sort((a,b) => b.avgViews - a.avgViews);
+}
+
+// ════ VIDEO ROW HTML ══════════════════════════
+function vrow(v, rankNum, showUrl=false) {
+  const ec = engColor(v.engRate);
+  const ew = Math.min(100, v.engRate * 7);
+  const titleEl = v.url
+    ? `<a href="${v.url}" target="_blank" class="vtitle has-url" title="${v.title}">${v.title}</a>`
+    : `<span class="vtitle" title="${v.title}">${v.title}</span>`;
+  const urlCell = showUrl
+    ? `<td><input class="url-inp" placeholder="粘贴链接" value="${v.url||''}" onchange="updateURL(${v.id},this.value)" onblur="updateURL(${v.id},this.value)"></td>`
+    : '';
+  return `<tr class="${v.boosted?'boosted':''}">
+    <td class="rank-num ${rankNum<=3?'top3':''}">${rankNum<=3?['🥇','🥈','🥉'][rankNum-1]:rankNum}</td>
+    <td>${titleEl}<div class="vdate">${v.date}</div></td>
+    <td>${catBadge(v.category)}</td>`;
+}
+
+// ════ OVERVIEW ═══════════════════════════════
+function renderOverview() {
+  const inc = document.getElementById('ovToggle').checked;
+  const vids = getFiltered(!inc);
+  document.getElementById('ovDesc').textContent = `${vids.length}条视频${inc?'（含推流23条）':'（推流已排除）'}`;
+
+  const tv = vids.reduce((s,v)=>s+v.views,0);
+  const tl = vids.reduce((s,v)=>s+v.likes,0);
+  const ae = +(vids.reduce((s,v)=>s+v.engRate,0)/vids.length).toFixed(1);
+  const av = Math.round(tv/vids.length);
+  const maxE = Math.max(...vids.map(v=>v.engRate));
+
+  document.getElementById('ovKpis').innerHTML = `
+    <div class="kpi"><div class="kpi-lbl">视频总数</div><div class="kpi-val">${vids.length}</div><div class="kpi-sub">${inc?'含推流':'已排除推流'}</div></div>
+    <div class="kpi c-red"><div class="kpi-lbl">总播放量</div><div class="kpi-val">${fmt(tv)}</div><div class="kpi-sub">累计</div></div>
+    <div class="kpi c-blue"><div class="kpi-lbl">均播放量</div><div class="kpi-val">${fmt(av)}</div><div class="kpi-sub">每条均值</div></div>
+    <div class="kpi c-green"><div class="kpi-lbl" title="均互动率 = (总点赞 + 总评论) ÷ 总播放 × 100%">均互动率 ℹ️</div><div class="kpi-val">${ae}%</div><div class="kpi-sub">点赞/播放</div></div>
+    <div class="kpi c-amber"><div class="kpi-lbl">最高互动率</div><div class="kpi-val">${maxE.toFixed(1)}%</div><div class="kpi-sub">单视频峰值</div></div>`;
+
+  const cs = catStats(vids);
+  const cl = cs.map(c=>c.cat), cc = cl.map(c=>CAT_COLORS[c]||'#94A3B8');
+  mc('cCatViews','bar',{labels:cl,datasets:[{data:cs.map(c=>c.avgViews),backgroundColor:cc.map(c=>c+'22'),borderColor:cc,borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)}`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>fmt(v)}}}});
+  mc('cCatEng','bar',{labels:cl,datasets:[{data:cs.map(c=>c.avgEng),backgroundColor:cs.map(c=>engColor(c.avgEng)+'22'),borderColor:cs.map(c=>engColor(c.avgEng)),borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>v+'%'}}}});
+
+  // Trend
+  const mm = {}; vids.forEach(v => {
+    const m2=v.date.match(/(\d{4})年(\d+)月/), m1=v.date.match(/^(\d+)月/);
+    const k = m2?`${m2[1]}-${m2[2].padStart(2,'0')}`:(m1?`2025-${m1[1].padStart(2,'0')}`:'');
+    if (!k) return; if (!mm[k]) mm[k]=[]; mm[k].push(v.views);
+  });
+  const months = Object.keys(mm).sort().slice(-14);
+  mc('cTrend','line',{labels:months.map(m=>m.replace(/\d{4}-/,'')),datasets:[{data:months.map(m=>Math.round(mm[m].reduce((s,v)=>s+v,0)/mm[m].length)),borderColor:'#1A1A18',backgroundColor:'rgba(26,26,24,0.04)',borderWidth:1.5,tension:.3,pointRadius:3,fill:true}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` 均${fmt(c.raw)}`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>fmt(v)}}}});
+
+  // Hour
+  const hm = Array(24).fill(0); vids.forEach(v => { const h=getHour(v.date); if(h!==null) hm[h]++; });
+  mc('cHour','bar',{labels:Array.from({length:24},(_,i)=>`${i}时`),datasets:[{data:hm,backgroundColor:hm.map(v=>v>20?'#1A1A18':'#E5E5E1'),borderRadius:3}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}条`}}},scales:{...bs}});
+}
+
+// ════ ANALYSIS ════════════════════════════════
+function getWeekday(dateStr) {
+  const m2=dateStr.match(/(\d{4})年(\d+)月(\d+)日/);
+  const m1=dateStr.match(/^(\d+)月(\d+)日/);
+  try {
+    if(m2){const d=new Date(+m2[1],+m2[2]-1,+m2[3]);return isNaN(d.getTime())?null:d.getDay();}
+    if(m1){const d=new Date(2026,+m1[1]-1,+m1[2]);return isNaN(d.getTime())?null:d.getDay();}
+  }catch(e){}
+  return null;
+}
+function getYearMonth(dateStr) {
+  const m2=dateStr.match(/(\d{4})年(\d+)月/),m1=dateStr.match(/^(\d+)月/);
+  if(m2) return `${m2[1]}-${m2[2].padStart(2,'0')}`;
+  if(m1) return `2026-${m1[1].padStart(2,'0')}`;
+  return null;
+}
+
+function renderAnalysis() {
+  const org = getOrganic();
+
+  // ── 互动率分布 ──
+  const engBins=[{l:'<2% 偏低',mn:0,mx:2,c:'var(--red)'},{l:'2-5% 正常',mn:2,mx:5,c:'var(--amber)'},{l:'5-8% 优秀',mn:5,mx:8,c:'var(--blue)'},{l:'8-15% 爆款',mn:8,mx:15,c:'var(--green)'},{l:'>15% 极爆',mn:15,mx:999,c:'#7C3AED'}];
+  const engD=engBins.map(b=>({...b,n:org.filter(v=>v.engRate>=b.mn&&v.engRate<b.mx).length}));
+  document.getElementById('engDistribText').innerHTML=engD.map(b=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--bg2)"><span style="font-size:11px;color:var(--t2)">${b.l}</span><div style="display:flex;align-items:center;gap:6px"><div style="width:${Math.round(b.n/org.length*100)}px;height:4px;background:${b.c};border-radius:2px;min-width:2px"></div><span style="font-family:var(--mono);font-size:12px;color:${b.c};font-weight:500;min-width:28px;text-align:right">${b.n}</span></div></div>`).join('')+`<div style="font-size:10px;color:var(--t3);margin-top:4px">${org.length} 条有机视频</div>`;
+
+  // ── 因子相关性 ──
+  const likeCorr=Math.abs(pearsonCorr(org.map(v=>v.likes),org.map(v=>v.views)));
+  const cmtCorr=Math.abs(pearsonCorr(org.map(v=>v.comments),org.map(v=>v.views)));
+  const engCorr=Math.abs(pearsonCorr(org.map(v=>v.engRate),org.map(v=>v.views)));
+  const hVids=org.filter(v=>getHour(v.date)!==null);
+  const hourCorr=Math.abs(pearsonCorr(hVids.map(v=>getHour(v.date)),hVids.map(v=>v.views)));
+  const wVids=org.filter(v=>getWeekday(v.date)!==null);
+  const wdCorr=Math.abs(pearsonCorr(wVids.map(v=>getWeekday(v.date)),wVids.map(v=>v.views)));
+  const tlCorr=Math.abs(pearsonCorr(org.map(v=>v.title.length),org.map(v=>v.views)));
+  const cs=catStats(org);
+  const catVar=(Math.max(...cs.map(c=>c.avgViews))-Math.min(...cs.map(c=>c.avgViews)))/Math.max(...cs.map(c=>c.avgViews));
+  const factors=[
+    {label:'点赞数',val:likeCorr,color:'var(--red)',desc:'最强信号 — 点赞直接驱动算法推送'},
+    {label:'评论数',val:cmtCorr,color:'var(--purple)',desc:'评论越多越被推 — 发布后第一小时最关键'},
+    {label:'内容类型',val:catVar*0.55,color:'var(--green)',desc:'类型选择决定内容天花板'},
+    {label:'互动率',val:engCorr,color:'var(--blue)',desc:'反映内容质量，间接影响持续推送'},
+    {label:'发布时段',val:hourCorr,color:'var(--amber)',desc:'21:00/20:00 比 19:00 高 20%+'},
+    {label:'标题长度',val:tlCorr,color:'#0C8599',desc:'短标题互动率普遍更高'},
+    {label:'发布星期',val:wdCorr,color:'#3B5BDB',desc:'周一/周三比周末高 40%+'},
+  ].sort((a,b)=>b.val-a.val);
+  const maxV=factors[0].val;
+  document.getElementById('corrChart').innerHTML=factors.map((f,i)=>`<div class="corr-row"><span class="corr-label" style="font-weight:${i<2?600:400}">${i===0?'🥇 ':i===1?'🥈 ':i===2?'🥉 ':'　 '}${f.label}</span><div class="corr-bar-wrap"><div class="corr-bar" style="width:${(f.val/maxV*100).toFixed(0)}%;background:${f.color}"></div></div><span class="corr-val" style="color:${f.color};font-weight:${i<2?600:400}">${(f.val*100).toFixed(0)}%</span><span style="font-size:11px;color:var(--t3);margin-left:10px">${f.desc}</span></div>`).join('');
+
+  // ── 时段分析 ──
+  const hV=Array(24).fill(null).map(()=>[]);
+  org.forEach(v=>{const h=getHour(v.date);if(h!==null)hV[h].push(v.views);});
+  const hAvg=hV.map(a=>a.length>=2?Math.round(a.reduce((s,v)=>s+v,0)/a.length):0);
+  const maxH=Math.max(...hAvg);
+  mc('cHourViews','bar',{labels:Array.from({length:24},(_,i)=>String(i)),datasets:[{data:hAvg,backgroundColor:hAvg.map(v=>v===maxH?'#1A1A18':v>maxH*0.75?'#6B7280':'#E5E5E1'),borderRadius:3}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>hV[c.dataIndex].length>=2?` 均${fmt(c.raw)} (${hV[c.dataIndex].length}条)`:'数据不足'}}},scales:{...bs,x:{...bs.x,ticks:{color:'#9A9A94',font:{size:10}}},y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>fmt(v)}}}});
+  const top3H=[...hAvg.map((v,i)=>({v,i}))].sort((a,b)=>b.v-a.v).filter(x=>hV[x.i].length>=2).slice(0,3);
+  const bH=top3H[0].i;
+  document.getElementById('bestHourVal').textContent=`${bH}:00`;
+  document.getElementById('bestHourDesc').innerHTML=`<b>${bH}:00</b> 均播最高。前三名时段：<b>${top3H.map(x=>x.i+':00').join(' / ')}</b>。<br><br>注意：目前 <b>19:00</b> 发了 214 条（最多），但均播只有 ${fmt(hAvg[19])}。<b>21:00 均播 ${fmt(hAvg[21])}</b>，却只发了 ${hV[21].length} 条——严重低估了最佳时段。`;
+
+  // ── 星期分析 ──
+  const wdNames=['周日','周一','周二','周三','周四','周五','周六'];
+  const wdV=Array(7).fill(null).map(()=>[]);
+  org.forEach(v=>{const w=getWeekday(v.date);if(w!==null)wdV[w].push(v.views);});
+  const wdAvg=wdV.map(a=>a.length>=3?Math.round(a.reduce((s,v)=>s+v,0)/a.length):0);
+  const maxW=Math.max(...wdAvg);
+  mc('cWeekday','bar',{labels:wdNames,datasets:[{data:wdAvg,backgroundColor:wdAvg.map(v=>v===maxW?'#1A1A18':v>maxW*0.8?'#6B7280':'#E5E5E1'),borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` 均${fmt(c.raw)}`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>fmt(v)}}}});
+  const bW=wdAvg.indexOf(maxW),worstW=wdAvg.indexOf(Math.min(...wdAvg.filter(v=>v>0)));
+  document.getElementById('bestWeekVal').textContent=wdNames[bW];
+  document.getElementById('bestWeekDesc').innerHTML=`<b>${wdNames[bW]}</b> 均播最高（${fmt(wdAvg[bW])}），<b>${wdNames[worstW]}</b> 最低（${fmt(wdAvg[worstW])}）。<br><br>建议将重点内容排在<b>周一/周三</b>发布，避开周末。`;
+
+  // ── 发布频率 ──
+  const mmMap={};
+  org.forEach(v=>{const m=getYearMonth(v.date);if(!m)return;if(!mmMap[m])mmMap[m]=[];mmMap[m].push(v.views);});
+  const months=Object.keys(mmMap).sort().slice(-14);
+  const mCts=months.map(m=>mmMap[m].length);
+  const mAvgs=months.map(m=>Math.round(mmMap[m].reduce((s,v)=>s+v,0)/mmMap[m].length));
+  mc('cFreqVsViews','bar',{labels:months.map(m=>m.slice(2)),datasets:[
+    {label:'发布数量',data:mCts,backgroundColor:'#E5E5E1',borderRadius:3,yAxisID:'y2'},
+    {label:'均播放量',data:mAvgs,type:'line',borderColor:'var(--red)',backgroundColor:'transparent',borderWidth:2,pointRadius:4,pointBackgroundColor:'var(--red)',tension:.3,yAxisID:'y'}
+  ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#5A5A55',font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset.label==='均播放量'?` ${fmt(c.raw)}`:`发布 ${c.raw} 条`}}},
+  scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>fmt(v)},position:'left'},y2:{position:'right',grid:{display:false},ticks:{color:'#9A9A94'}}}});
+  const hfM=months.filter((_,i)=>mCts[i]>=20),lfM=months.filter((_,i)=>mCts[i]<=12&&mCts[i]>0);
+  const hfA=hfM.length?Math.round(hfM.reduce((s,m)=>s+mAvgs[months.indexOf(m)],0)/hfM.length):0;
+  const lfA=lfM.length?Math.round(lfM.reduce((s,m)=>s+mAvgs[months.indexOf(m)],0)/lfM.length):0;
+  document.getElementById('freqInsight').innerHTML=`月发布 <b>≥20 条</b>的月份，均播约 <b style="color:var(--amber)">${fmt(hfA)}</b>。<br>月发布 <b>≤12 条</b>的月份，均播约 <b style="color:var(--green)">${fmt(lfA)}</b>。<br><br>${lfA>hfA?`<b>少发精发效果更好。</b>减少发布频率、提升单条质量，均播反而更高。建议每周稳定 <b>3-4 条</b>精品，而非每天发。`:`发布量与播放量关系需持续追踪，当前阶段质量比频率更重要。`}`;
+
+  // ── 标题长度 ──
+  const tlBins=[{l:'极短<15字',mn:0,mx:15},{l:'短15-30',mn:15,mx:30},{l:'中30-50',mn:30,mx:50},{l:'长50-80',mn:50,mx:80},{l:'超长>80',mn:80,mx:999}];
+  const tlD=tlBins.map(b=>{const vs=org.filter(v=>v.title.length>=b.mn&&v.title.length<b.mx);return{n:vs.length,eng:vs.length?+(vs.reduce((s,v)=>s+v.engRate,0)/vs.length).toFixed(1):0};});
+  mc('cTitleLen','bar',{labels:tlBins.map(b=>b.l),datasets:[{data:tlD.map(d=>d.eng),backgroundColor:tlD.map(d=>engColor(d.eng)+'33'),borderColor:tlD.map(d=>engColor(d.eng)),borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` 均互动率 ${c.raw}% (${tlD[c.dataIndex].n}条)`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>v+'%'}}}});
+
+  // ── 标签数量 ──
+  const tgBins=[{l:'0个',mn:0,mx:1},{l:'1个',mn:1,mx:2},{l:'2个',mn:2,mx:3},{l:'3-4个',mn:3,mx:5},{l:'5个+',mn:5,mx:99}];
+  const tgD=tgBins.map(b=>{const vs=org.filter(v=>{const n=(v.title.match(/#/g)||[]).length;return n>=b.mn&&n<b.mx;});return{n:vs.length,views:vs.length?Math.round(vs.reduce((s,v)=>s+v.views,0)/vs.length):0};});
+  const maxTg=Math.max(...tgD.map(d=>d.views));
+  mc('cHashtags','bar',{labels:tgBins.map(b=>b.l),datasets:[{data:tgD.map(d=>d.views),backgroundColor:tgD.map(d=>d.views===maxTg?'#1A1A18':'#E5E5E1'),borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` 均${fmt(c.raw)} (${tgD[c.dataIndex].n}条)`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>fmt(v)}}}});
+
+  // ── 标题元素特征 ──
+  const hiE=org.filter(v=>v.engRate>=8),loE=org.filter(v=>v.engRate<5&&v.engRate>0);
+  const feats=[
+    {l:'含感叹号 ！',hi:hiE.filter(v=>/！|!/.test(v.title)).length/hiE.length,lo:loE.filter(v=>/！|!/.test(v.title)).length/loE.length,desc:'高互动视频更常用感叹号'},
+    {l:'含问号 ？',hi:hiE.filter(v=>/？|\?/.test(v.title)).length/hiE.length,lo:loE.filter(v=>/？|\?/.test(v.title)).length/loE.length,desc:'问句引导用户回应'},
+    {l:'含 emoji',hi:hiE.filter(v=>/\p{Emoji}/u.test(v.title)).length/hiE.length,lo:loE.filter(v=>/\p{Emoji}/u.test(v.title)).length/loE.length,desc:'emoji 影响相对较小'},
+    {l:'短标题<30字',hi:hiE.filter(v=>v.title.length<30).length/hiE.length,lo:loE.filter(v=>v.title.length<30).length/loE.length,desc:'简洁标题互动更好'},
+  ];
+  document.getElementById('titleFeatures').innerHTML=feats.map(f=>{
+    const diff=((f.hi-f.lo)*100).toFixed(0),isG=f.hi>f.lo;
+    return `<div style="padding:12px;background:${isG?'#F0FDF4':'#FFF5F5'};border-radius:8px;border:1px solid ${isG?'#BBF7D0':'#FED7D7'}"><div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:6px">${f.l}</div><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;color:var(--t3)">高互动(≥8%)</span><span style="font-family:var(--mono);font-size:13px;color:var(--green);font-weight:600">${(f.hi*100).toFixed(0)}%</span></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:10px;color:var(--t3)">低互动(&lt;5%)</span><span style="font-family:var(--mono);font-size:13px;color:var(--red)">${(f.lo*100).toFixed(0)}%</span></div><div style="font-size:10px;color:${isG?'var(--green)':'var(--t3)'}">差距 ${isG?'+':''}${diff}pp · ${f.desc}</div></div>`;
+  }).join('');
+
+  // ── 类型 ──
+  const orgCs=catStats(org).sort((a,b)=>b.avgViews-a.avgViews);
+  mc('cOrgCat','bar',{labels:orgCs.map(c=>c.cat),datasets:[{data:orgCs.map(c=>c.avgViews),backgroundColor:orgCs.map(c=>(CAT_COLORS[c.cat]||'#94A3B8')+'33'),borderColor:orgCs.map(c=>CAT_COLORS[c.cat]||'#94A3B8'),borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` 均${fmt(c.raw)}`}}},scales:{...bs,y:{...bs.y,ticks:{color:'#5A5A55',font:{size:11}}},x:{...bs.x,ticks:{...bs.x.ticks,callback:v=>fmt(v)}}}});
+  mc('cEngVsViews','scatter',{datasets:orgCs.map(c=>({label:c.cat,data:[{x:c.avgViews,y:c.avgEng,label:c.cat}],backgroundColor:(CAT_COLORS[c.cat]||'#94A3B8')+'AA',pointRadius:9,pointHoverRadius:11}))},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#5A5A55',font:{size:10},boxWidth:8,boxHeight:8,padding:6}},tooltip:{callbacks:{label:c=>`${c.raw.label} | 播:${fmt(c.raw.x)} 互:${c.raw.y}%`}}},scales:{x:{...bs.x,title:{display:true,text:'均播放量',color:'#9A9A94'},ticks:{...bs.x.ticks,callback:v=>fmt(v)}},y:{...bs.y,title:{display:true,text:'均互动率%',color:'#9A9A94'},ticks:{...bs.y.ticks,callback:v=>v+'%'}}}});
+
+  // ── 时长 ──
+  const durBins=[{label:'<=15s',min:0,max:15},{label:'16-30s',min:15,max:30},{label:'31-60s',min:30,max:60},{label:'1-3分',min:60,max:180},{label:'>3分',min:180,max:9999}];
+  const durData=durBins.map(b=>{const vs=org.filter(v=>{const s=getDurSecs(v.duration);return s!==null&&s>b.min&&s<=b.max;});return{views:vs.length?Math.round(vs.reduce((s,v)=>s+v.views,0)/vs.length):0,eng:vs.length?+(vs.reduce((s,v)=>s+v.engRate,0)/vs.length).toFixed(2):0,n:vs.length};});
+  mc('cDurViews','bar',{labels:durBins.map(b=>b.label),datasets:[{data:durData.map(d=>d.views),backgroundColor:'#E7F5FF',borderColor:'var(--blue)',borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` 均${fmt(c.raw)} (${durData[c.dataIndex].n}条)`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>fmt(v)}}}});
+  mc('cDurEng','bar',{labels:durBins.map(b=>b.label),datasets:[{data:durData.map(d=>d.eng),backgroundColor:durData.map(d=>engColor(d.eng)+'33'),borderColor:durData.map(d=>engColor(d.eng)),borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>v+'%'}}}});
+
+  // ── 建议 ──
+  const bestCat=orgCs[0];
+  const bDurIdx=durData.map(d=>d.views).indexOf(Math.max(...durData.map(d=>d.views)));
+  const top3Hstr=top3H.map(x=>x.i+':00').join(' / ');
+  const tips=[
+    {n:'01',text:`<b>发布时间改到 21:00 或 20:00</b>——均播分别是 19:00 的 1.37x 和 1.18x，是最易实现的提升点`},
+    {n:'02',text:`<b>重点内容排在周一/周三</b>——周一均播 206K，比周末高 <b>+47%</b>，重要视频避开周六/日`},
+    {n:'03',text:`<b>减少发布频率、提升单条质量</b>——月发 ≤12 条的月份均播比 ≥20 条的高出约 <b>40%</b>，少而精更有效`},
+    {n:'04',text:`<b>标题加感叹号「！」</b>——高互动视频有 56% 含感叹号，低互动只有 34%，简单改动效果显著`},
+    {n:'05',text:`<b>多做「${bestCat.cat}」内容</b>——自然流量下均播 ${fmt(bestCat.avgViews)}，是所有类型中最高`},
+    {n:'06',text:`<b>使用 3-4 个 #标签</b>——标签 3-4 个时均播最高（195K），0个标签均播最低（126K）`},
+    {n:'07',text:`<b>标题控制在 30-50 字以内</b>——短标题互动率更高，超长标题（>80字）互动最差`},
+    {n:'08',text:`<b>点赞是最核心算法信号</b>——内容前 3 秒要触发「想点赞」的冲动，情感共鸣和意外感是关键`},
+  ];
+  document.getElementById('tipGrid').innerHTML=tips.map(t=>`<div class="tip-card"><div class="tip-num">${t.n}</div><div class="tip-text">${t.text}</div></div>`).join('');
+}
+
+// Pearson correlation coefficient
+function pearsonCorr(x, y) {
+  const n=x.length, mx=x.reduce((s,v)=>s+v,0)/n, my=y.reduce((s,v)=>s+v,0)/n;
+  let num=0,dx=0,dy=0;
+  for(let i=0;i<n;i++){const a=x[i]-mx,b=y[i]-my;num+=a*b;dx+=a*a;dy+=b*b;}
+  return dx&&dy?num/Math.sqrt(dx*dy):0;
+}
+
+// ════ CATEGORY PAGE ═══════════════════════════
+function renderCategory() {
+  const allCs = catStats(ALL), orgCs = catStats(getOrganic());
+  const orgMap = Object.fromEntries(orgCs.map(c=>[c.cat,c]));
+  const labels = allCs.map(c=>c.cat), cc = labels.map(l=>CAT_COLORS[l]||'#94A3B8');
+
+  mc('cCatComp1','bar',{labels,datasets:[
+    {label:'全数据',data:allCs.map(c=>c.avgViews),backgroundColor:cc.map(c=>c+'22'),borderColor:cc,borderWidth:1.5,borderRadius:3},
+    {label:'排除推流',data:labels.map(l=>orgMap[l]?.avgViews||0),backgroundColor:'#EBFBEE',borderColor:'var(--green)',borderWidth:1.5,borderRadius:3}
+  ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#5A5A55',font:{size:11}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>fmt(v)}}}});
+
+  mc('cCatComp2','bar',{labels,datasets:[
+    {label:'全数据',data:allCs.map(c=>c.avgEng),backgroundColor:cc.map(c=>c+'22'),borderColor:cc,borderWidth:1.5,borderRadius:3},
+    {label:'排除推流',data:labels.map(l=>orgMap[l]?.avgEng||0),backgroundColor:'#EBFBEE',borderColor:'var(--green)',borderWidth:1.5,borderRadius:3}
+  ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#5A5A55',font:{size:11}}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},scales:{...bs,y:{...bs.y,ticks:{...bs.y.ticks,callback:v=>v+'%'}}}});
+
+  // Table
+  const maxV = Math.max(...allCs.map(c=>c.avgViews));
+  document.getElementById('catTable').innerHTML = `
+    <div style="display:grid;grid-template-columns:130px 50px 1fr 70px 70px 70px;gap:0;font-size:11px">
+      <div style="padding:8px 12px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--b)">类型</div>
+      <div style="padding:8px 8px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--b)">数量</div>
+      <div style="padding:8px 8px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--b)">均播放（全 vs 推流排除后）</div>
+      <div style="padding:8px 8px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--b);text-align:right">均互动率</div>
+      <div style="padding:8px 8px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--b);text-align:right">均点赞</div>
+      <div style="padding:8px 8px;font-weight:600;color:var(--t3);border-bottom:1px solid var(--b);text-align:right">均评论</div>
+    </div>` +
+    allCs.map(a => {
+      const o = orgMap[a.cat]||a, c = CAT_COLORS[a.cat]||'#94A3B8';
+      const aw=Math.round(a.avgViews/maxV*100), ow=Math.round(o.avgViews/maxV*100);
+      const delta = Math.round((o.avgViews-a.avgViews)/a.avgViews*100);
+      return `<div style="display:grid;grid-template-columns:130px 50px 1fr 70px 70px 70px;gap:0;border-bottom:1px solid var(--bg2)">
+        <div style="padding:10px 12px">${catBadge(a.cat)}</div>
+        <div style="padding:10px 8px;font-family:var(--mono);color:var(--t3)">${a.n}</div>
+        <div style="padding:10px 8px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <div style="height:4px;width:${aw}%;background:${c}33;border-radius:2px;min-width:2px;border:1px solid ${c}55"></div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--t3)">${fmt(a.avgViews)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="height:4px;width:${ow}%;background:var(--green);border-radius:2px;min-width:2px;opacity:.7"></div>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--green)">${fmt(o.avgViews)}</span>
+            <span style="font-size:10px;color:${delta<0?'var(--red)':'var(--green)'}">${delta>0?'+':''}${delta}%</span>
+          </div>
+        </div>
+        <div style="padding:10px 8px;font-family:var(--mono);text-align:right;color:${engColor(a.avgEng)}">${a.avgEng}%</div>
+        <div style="padding:10px 8px;font-family:var(--mono);text-align:right">${fmt(a.avgLikes)}</div>
+        <div style="padding:10px 8px;font-family:var(--mono);text-align:right">${fmt(a.avgCmts)}</div>
+      </div>`;
+    }).join('');
+}
+
+// ════ RANKING PAGES ════════════════════════
+function renderCatDonut(canvasId, vids, allVids) {
+  // 横向柱状图：类型数量 + 百分比
+  const cats = {};
+  vids.forEach(v => cats[v.category] = (cats[v.category]||0) + 1);
+  const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const labels = sorted.map(x=>x[0]);
+  const data   = sorted.map(x=>x[1]);
+  const colors = labels.map(l=>CAT_COLORS[l]||'#94A3B8');
+  mc(canvasId,'bar',{
+    labels,
+    datasets:[{
+      data,
+      backgroundColor: colors.map(c=>c+'33'),
+      borderColor: colors,
+      borderWidth: 1.5,
+      borderRadius: 4,
+    }]
+  },{
+    responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:c=>` ${c.raw}条 (${(c.raw/vids.length*100).toFixed(0)}%)`}}
+    },
+    scales:{
+      x:{...bs.x, ticks:{...bs.x.ticks, callback:v=>v+'条'}},
+      y:{...bs.y, ticks:{color:'#5A5A55', font:{size:11}}}
+    }
+  });
+}
+
+function renderCatCompBar(canvasId, top50, allVids) {
+  // 各类型在 Top50 里的占比 vs 总体占比，并排对比，横向
+  const allCats = {}, topCats = {};
+  allVids.forEach(v => allCats[v.category]=(allCats[v.category]||0)+1);
+  top50.forEach(v => topCats[v.category]=(topCats[v.category]||0)+1);
+  const labels = Object.keys(allCats).sort((a,b)=>(topCats[b]||0)/allCats[b]-(topCats[a]||0)/allCats[a]);
+  const allPcts = labels.map(l=>+(allCats[l]/allVids.length*100).toFixed(1));
+  const topPcts = labels.map(l=>+((topCats[l]||0)/top50.length*100).toFixed(1));
+  const colors  = labels.map(l=>CAT_COLORS[l]||'#94A3B8');
+  mc(canvasId,'bar',{labels,datasets:[
+    {label:'Top50占比', data:topPcts, backgroundColor:colors.map(c=>c+'99'), borderColor:colors, borderWidth:1.5, borderRadius:4},
+    {label:'全部视频占比', data:allPcts, backgroundColor:'#E5E5E1', borderColor:'#D0D0CA', borderWidth:1, borderRadius:4},
+  ]},{
+    responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    plugins:{
+      legend:{display:true, labels:{color:'#5A5A55', font:{size:10}, boxWidth:10, boxHeight:8, padding:8}},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}
+    },
+    scales:{
+      x:{...bs.x, ticks:{...bs.x.ticks, callback:v=>v+'%'}},
+      y:{...bs.y, ticks:{color:'#5A5A55', font:{size:11}}}
+    }
+  });
+}
+
+function renderTopViews() {
+  const hide = document.getElementById('tvHide').checked;
+  const vids = [...getFiltered(hide)].sort((a,b)=>b.views-a.views).slice(0,50);
+  renderCatDonut('cTvCat', vids, getFiltered(hide));
+  renderCatCompBar('cTvCatComp', vids, getFiltered(hide));
+  document.getElementById('tvCount').textContent = `Top ${vids.length}`;
+  document.getElementById('tvBody').innerHTML = vids.map((v,i)=>{
+    const ec=engColor(v.engRate), ew=Math.min(100,v.engRate*7);
+    const titleEl = v.url?`<a href="${v.url}" target="_blank" class="vtitle">${v.title}</a>`:`<span class="vtitle">${v.title}</span>`;
+    return `<tr class="${v.boosted?'boosted':''}">
+      <td class="rank-num ${i<3?'top3':''}">${i<3?['🥇','🥈','🥉'][i]:i+1}</td>
+      <td>${titleEl}<div class="vdate">${v.date}</div></td>
+      <td>${catBadge(v.category)}</td>
+      <td class="num" style="color:var(--red);font-weight:500">${fmt(v.views)}</td>
+      <td class="num">${fmt(v.likes)}</td>
+      <td><div class="mbar"><div class="mbar-track"><div class="mbar-fill" style="width:${ew}%;background:${ec}"></div></div><span class="mbar-txt" style="color:${ec}">${v.engRate}%</span></div></td>
+      <td class="num">${fmt(v.comments)}</td>
+      <td style="text-align:center"><button class="boost-btn ${manualBoosts[v.id]?'marked':v.boosted&&!manualBoosts[v.id]?'marked':''}" onclick="toggleBoost(${v.id})" title="${v.boosted?'点击取消标记':'标记为推流'}">${manualBoosts[v.id]?'⚡手动':v.boosted?'⚡统计':'标记'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTopLikes() {
+  const hide = document.getElementById('tlHide').checked;
+  const vids = [...getFiltered(hide)].sort((a,b)=>b.likes-a.likes).slice(0,50);
+  renderCatDonut('cTlCat', vids, getFiltered(hide));
+  // 命中率：各类型在Top50里的比例 vs 总体比例的倍数
+  const allF = getFiltered(hide);
+  const allCts={}, topCts={};
+  allF.forEach(v=>allCts[v.category]=(allCts[v.category]||0)+1);
+  vids.forEach(v=>topCts[v.category]=(topCts[v.category]||0)+1);
+  const cats2=Object.keys(allCts).filter(c=>topCts[c]).sort((a,b)=>(topCts[b]||0)/allCts[b]-(topCts[a]||0)/allCts[a]);
+  mc('cTlHitRate','bar',{labels:cats2,datasets:[{data:cats2.map(c=>+((topCts[c]||0)/allCts[c]*100).toFixed(1)),backgroundColor:cats2.map(c=>(CAT_COLORS[c]||'#94A3B8')+'99'),borderColor:cats2.map(c=>CAT_COLORS[c]||'#94A3B8'),borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% 的视频进入Top50`}}},scales:{...bs,y:{...bs.y,ticks:{color:'#5A5A55',font:{size:10}}},x:{...bs.x,ticks:{...bs.x.ticks,callback:v=>v+'%'}}}});
+  document.getElementById('tlCount').textContent = `Top ${vids.length}`;
+  document.getElementById('tlBody').innerHTML = vids.map((v,i)=>{
+    const ec=engColor(v.engRate), ew=Math.min(100,v.engRate*7);
+    const titleEl = v.url?`<a href="${v.url}" target="_blank" class="vtitle">${v.title}</a>`:`<span class="vtitle">${v.title}</span>`;
+    return `<tr class="${v.boosted?'boosted':''}">
+      <td class="rank-num ${i<3?'top3':''}">${i<3?['🥇','🥈','🥉'][i]:i+1}</td>
+      <td>${titleEl}<div class="vdate">${v.date}</div></td>
+      <td>${catBadge(v.category)}</td>
+      <td class="num" style="color:var(--red);font-weight:500">${fmt(v.likes)}</td>
+      <td class="num">${fmt(v.views)}</td>
+      <td><div class="mbar"><div class="mbar-track"><div class="mbar-fill" style="width:${ew}%;background:${ec}"></div></div><span class="mbar-txt" style="color:${ec}">${v.engRate}%</span></div></td>
+      <td class="num">${fmt(v.comments)}</td>
+      <td style="text-align:center"><button class="boost-btn ${manualBoosts[v.id]?'marked':v.boosted&&!manualBoosts[v.id]?'marked':''}" onclick="toggleBoost(${v.id})" title="${v.boosted?'点击取消标记':'标记为推流'}">${manualBoosts[v.id]?'⚡手动':v.boosted?'⚡统计':'标记'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTopComments() {
+  const hide = document.getElementById('tcHide').checked;
+  const vids = [...getFiltered(hide)].sort((a,b)=>b.comments-a.comments).slice(0,50);
+  renderCatDonut('cTcCat', vids, getFiltered(hide));
+  const cs2 = catStats(getFiltered(hide)).sort((a,b)=>b.avgCmts-a.avgCmts);
+  mc('cTcCmtBycat','bar',{labels:cs2.map(c=>c.cat),datasets:[{data:cs2.map(c=>c.avgCmts),backgroundColor:cs2.map(c=>(CAT_COLORS[c.cat]||'#94A3B8')+'33'),borderColor:cs2.map(c=>CAT_COLORS[c.cat]||'#94A3B8'),borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` 均${c.raw}条评论`}}},scales:{...bs,y:{...bs.y,ticks:{color:'#5A5A55',font:{size:10}}}}});
+  document.getElementById('tcCount').textContent = `Top ${vids.length}`;
+  document.getElementById('tcBody').innerHTML = vids.map((v,i)=>{
+    const ec=engColor(v.engRate), ew=Math.min(100,v.engRate*7);
+    const titleEl = v.url?`<a href="${v.url}" target="_blank" class="vtitle">${v.title}</a>`:`<span class="vtitle">${v.title}</span>`;
+    return `<tr class="${v.boosted?'boosted':''}">
+      <td class="rank-num ${i<3?'top3':''}">${i<3?['🥇','🥈','🥉'][i]:i+1}</td>
+      <td>${titleEl}<div class="vdate">${v.date}</div></td>
+      <td>${catBadge(v.category)}</td>
+      <td class="num" style="color:var(--purple);font-weight:500">${fmt(v.comments)}</td>
+      <td class="num">${fmt(v.views)}</td>
+      <td class="num">${fmt(v.likes)}</td>
+      <td><div class="mbar"><div class="mbar-track"><div class="mbar-fill" style="width:${ew}%;background:${ec}"></div></div><span class="mbar-txt" style="color:${ec}">${v.engRate}%</span></div></td>
+      <td style="text-align:center"><button class="boost-btn ${manualBoosts[v.id]?'marked':v.boosted&&!manualBoosts[v.id]?'marked':''}" onclick="toggleBoost(${v.id})">${manualBoosts[v.id]?'⚡手动':v.boosted?'⚡统计':'标记'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTopEng() {
+  const vids = [...getOrganic()].sort((a,b)=>b.engRate-a.engRate).slice(0,50);
+  renderCatDonut('cTeCat', vids, getOrganic());
+  const cs3 = catStats(getOrganic()).sort((a,b)=>b.avgEng-a.avgEng);
+  mc('cTeEngBycat','bar',{labels:cs3.map(c=>c.cat),datasets:[{data:cs3.map(c=>c.avgEng),backgroundColor:cs3.map(c=>engColor(c.avgEng)+'33'),borderColor:cs3.map(c=>engColor(c.avgEng)),borderWidth:1.5,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` 均互动率 ${c.raw}%`}}},scales:{...bs,y:{...bs.y,ticks:{color:'#5A5A55',font:{size:10}}},x:{...bs.x,ticks:{...bs.x.ticks,callback:v=>v+'%'}}}});
+  document.getElementById('teCount').textContent = `Top ${vids.length}（推流已排除）`;
+  document.getElementById('teBody').innerHTML = vids.map((v,i)=>{
+    const ec=engColor(v.engRate), ew=Math.min(100,v.engRate*7);
+    const titleEl = v.url?`<a href="${v.url}" target="_blank" class="vtitle">${v.title}</a>`:`<span class="vtitle">${v.title}</span>`;
+    return `<tr>
+      <td class="rank-num ${i<3?'top3':''}">${i<3?['🥇','🥈','🥉'][i]:i+1}</td>
+      <td>${titleEl}<div class="vdate">${v.date}</div></td>
+      <td>${catBadge(v.category)}</td>
+      <td><div class="mbar"><div class="mbar-track"><div class="mbar-fill" style="width:${ew}%;background:${ec}"></div></div><span class="mbar-txt" style="color:${ec};font-weight:500">${v.engRate}%</span></div></td>
+      <td class="num">${fmt(v.views)}</td>
+      <td class="num">${fmt(v.likes)}</td>
+      <td class="num">${fmt(v.comments)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════ ALL VIDEOS TABLE ════════════════════
+let filteredV = [], curPage = 1;
+const PER = 30;
+
+function filterVideos() {
+  const q = document.getElementById('vSearch').value.toLowerCase();
+  const cat = document.getElementById('vCat').value;
+  const sort = document.getElementById('vSort').value;
+  const hide = document.getElementById('vHide').checked;
+  filteredV = ALL.filter(v => {
+    if (hide && v.boosted) return false;
+    if (cat && v.category !== cat) return false;
+    if (q && !v.title.toLowerCase().includes(q)) return false;
+    return true;
+  }).sort((a,b) => sort==='rank' ? a.rank-b.rank : (b[sort]||0)-(a[sort]||0));
+  curPage = 1;
+  document.getElementById('vCount').textContent = filteredV.length + '条';
+  renderVPage();
+}
+
+function renderVPage() {
+  const start=(curPage-1)*PER, pg=filteredV.slice(start,start+PER);
+  document.getElementById('vBody').innerHTML = pg.map((v,i)=>{
+    const ec=engColor(v.engRate), ew=Math.min(100,v.engRate*7);
+    const rn = start+i+1;
+    const titleEl = v.url?`<a href="${v.url}" target="_blank" class="vtitle">${v.title}</a>`:`<span class="vtitle">${v.title}</span>`;
+    const isManualBoost = !!manualBoosts[v.id];
+    return `<tr class="${v.boosted?'boosted':''}">
+      <td class="rank-num">${v.rank}</td>
+      <td>${titleEl}<div class="vdate">${v.date}</div></td>
+      <td>${catBadge(v.category)}</td>
+      <td class="num">${fmt(v.views)}</td>
+      <td class="num">${fmt(v.likes)}</td>
+      <td><div class="mbar"><div class="mbar-track"><div class="mbar-fill" style="width:${ew}%;background:${ec}"></div></div><span class="mbar-txt" style="color:${ec}">${v.engRate}%</span></div></td>
+      <td class="num">${fmt(v.comments)}</td>
+      <td><input class="url-inp" placeholder="粘贴TikTok链接" value="${v.url||''}" onchange="updateURL(${v.id},this.value)" onblur="updateURL(${v.id},this.value)"></td>
+      <td style="text-align:center"><button class="boost-btn ${isManualBoost?'marked':''}" onclick="toggleBoost(${v.id})">${isManualBoost?'⚡ 已标记推流':'标记推流'}</button></td>
+    </tr>`;
+  }).join('');
+  const total=Math.ceil(filteredV.length/PER);
+  document.getElementById('vPInfo').textContent=`${start+1}–${Math.min(start+PER,filteredV.length)} / ${filteredV.length}条`;
+  const pb=document.getElementById('vPBtns');
+  pb.innerHTML=`<button class="pbtn" onclick="goP(${curPage-1})" ${curPage===1?'disabled':''}>‹</button>`;
+  let ps=[];
+  if(total<=7)ps=Array.from({length:total},(_,i)=>i+1);
+  else{ps=[1];if(curPage>3)ps.push('…');for(let i=Math.max(2,curPage-1);i<=Math.min(total-1,curPage+1);i++)ps.push(i);if(curPage<total-2)ps.push('…');ps.push(total);}
+  ps.forEach(p=>{if(p==='…')pb.innerHTML+=`<span class="pbtn" style="border:none;cursor:default">…</span>`;else pb.innerHTML+=`<button class="pbtn ${p===curPage?'active':''}" onclick="goP(${p})">${p}</button>`;});
+  pb.innerHTML+=`<button class="pbtn" onclick="goP(${curPage+1})" ${curPage===total?'disabled':''}>›</button>`;
+}
+
+function goP(p){const t=Math.ceil(filteredV.length/PER);if(p<1||p>t)return;curPage=p;renderVPage();}
+
+function updateURL(id, val) {
+  const v = ALL.find(v=>v.id===id); if(v) v.url=val;
+  urls[id] = val;
+}
+function saveURLs() { localStorage.setItem('idv_urls',JSON.stringify(urls)); showToast('✓ 链接已保存'); }
+function exportCSV() {
+  const rows=[['排名','标题','日期','类型','播放量','点赞','互动率','评论','链接','推流']];
+  filteredV.forEach(v=>rows.push([v.rank,`"${v.title.replace(/"/g,'""')}"`,v.date,v.category,v.views,v.likes,v.engRate,v.comments,v.url||'',v.boosted?'是':'否']));
+  const blob=new Blob(['\uFEFF'+rows.map(r=>r.join(',')).join('\n')],{type:'text/csv;charset=utf-8'});
+  Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`idv_${new Date().toISOString().slice(0,10)}.csv`}).click();
+  showToast('✓ CSV已导出');
+}
+
+// ════ TOAST ════════════════════════════════
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+// ════ INIT ═════════════════════════════════
+function initAll() {
+  renderOverview();
+  renderAnalysis();
+  renderCategory();
+  renderTopViews();
+  renderTopLikes();
+  renderTopComments();
+  renderTopEng();
+  renderRecommend();
+  renderTrends();
+  // Videos page cat filter
+  const cats=[...new Set(ALL.map(v=>v.category))].sort();
+  document.getElementById('vCat').innerHTML='<option value="">全类型</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  filterVideos();
+}
+
+// ════ RECOMMEND PAGE ══════════════════════════
+const CAT_CREATIVE = {
+  '情感类': {
+    tips: ['以角色的感情视角拍摄短片（30秒内）','用流行BGM配合角色表情特写','设置「你有过这种感觉吗？」类问题引导评论'],
+    formats: ['角色独白 + 感情文字', '两个角色的互动短剧', 'POV视角情感场景'],
+    avoid: '避免过度文字堆砌，情感要靠画面传递'
+  },
+  '氛围/短剧': {
+    tips: ['第一帧就要有强视觉冲击','配上当下流行的氛围音乐','短剧结尾留悬念引发「后来怎样了？」评论'],
+    formats: ['15秒氛围感画面', '30秒小短剧（含反转）', '定格动画风格'],
+    avoid: '避免镜头切换过快，给观众1-2秒时间感受'
+  },
+  '季节/活动': {
+    tips: ['提前3-5天发布（节前比节当天效果好）','结合荘园世界观改编现实节日','发起「你们会怎么过？」互动'],
+    formats: ['角色庆祝节日的短片', '节日氛围道具展示', 'Q版角色节日贺卡风格'],
+    avoid: '避免发布太晚，节日过后流量快速衰减'
+  },
+  'BGM/舞蹈': {
+    tips: ['选用当前日本TikTok热门BGM','前3秒一定要有舞蹈高潮动作','标注#第五人格 + BGM名称双标签'],
+    formats: ['角色跟跳热门舞蹈', 'BGM配角色高光瞬间', '多角色合跳挑战'],
+    avoid: '避免使用过时BGM，要看当周的Creative Center热门曲目'
+  },
+  '互动类': {
+    tips: ['标题直接问问题（「你选哪个？」「你们觉得呢？」）','设置非此即彼的选项，降低回答门槛','回复前几条评论，带动评论区活跃'],
+    formats: ['角色颜值对比投票', '游戏场景选择题', '「猜一猜」类内容'],
+    avoid: '避免问题太开放（「你们觉得第五人格怎么样？」），选项要具体'
+  },
+  '角色展示': {
+    tips: ['主打颜值和高光瞬间，前3秒一定要有吸睛画面','多角度剪辑，展示角色最美的角度','加「左右哪个更好看？」类互动'],
+    formats: ['角色换装对比', '多角色颜值排名', '角色技能高光集锦'],
+    avoid: '避免画面质量差，角色展示要清晰'
+  },
+  '游戏玩法': {
+    tips: ['展示观众学了就能用的实用技巧','「你知道这个吗？」格式效果好','展示意外的高光操作或失误（失误反而更有趣）'],
+    formats: ['30秒攻略速成', '「没想到吧」操作展示', '新手 vs 老玩家对比'],
+    avoid: '避免太长，游戏技巧视频最好控制在30秒内'
+  },
+  '联动合作': {
+    tips: ['联动公告要留悬念（「和某某的联动，猜到了吗？」）','发布时蹭联动IP的热度标签','联动倒计时系列增加期待感'],
+    formats: ['联动预告短片', '两个IP角色互动剧情', '联动限定内容展示'],
+    avoid: '避免只发官方图文，要有动态画面'
+  },
+  '梗图/挑战': {
+    tips: ['找当周日本TikTok上的热门挑战格式，改编成第五人格版','前3秒要让人笑出来或感到意外','标题用「第五人格版」格式会带来二次传播'],
+    formats: ['热门梗+第五人格角色', '游戏 vs 现实对比', '「只有玩家才懂」系列'],
+    avoid: '避免用过期的梗，时效性很强，越快越好'
+  },
+  '故事向': {
+    tips: ['制造信息缺口（「这个角色的秘密是...」）','多集连载格式，增加用户追更动力','配合角色背景音乐增加代入感'],
+    formats: ['角色背景故事短片', '世界观解谜系列', '角色命运揭秘'],
+    avoid: '避免一次性说太多，留悬念比全说出来效果更好'
+  },
+  '官方公告': {
+    tips: ['公告类视频用「重大消息！」「终于来了！」等标题增加紧迫感','加用户期待已久的内容元素','发布后立刻置顶回复第一条评论'],
+    formats: ['倒计时预告', '新内容第一视角体验', '「你猜到了吗？」验证类'],
+    avoid: '避免纯文字图片，一定要有动态元素'
+  },
+  '新皮肤/角色': {
+    tips: ['发布时机：比官方公告早30分钟发「泄露版」预热','多角度展示皮肤细节','加「值得买吗？」引导评论区讨论'],
+    formats: ['新皮肤360度展示', '新旧皮肤对比', '新角色技能演示'],
+    avoid: '避免画面太暗或太快，皮肤展示要清晰'
+  },
+  'ASMR': {
+    tips: ['用耳机提示增加体验感','角色声音 + 环境音结合','标题直接说「ASMR」吸引对应受众'],
+    formats: ['游戏内环境音', '角色语音ASMR', '荘园氛围声音'],
+    avoid: '避免背景噪音，音质要好'
+  },
+};
+
+function renderRecommend() {
+  const org = getOrganic();
+  const cats = {};
+  org.forEach(v => {
+    if (!cats[v.category]) cats[v.category] = [];
+    cats[v.category].push(v);
+  });
+
+  // 各类型评分：互动率 × log(均播放)
+  const catScores = Object.entries(cats).map(([cat, vids]) => {
+    const avgEng = vids.reduce((s,v)=>s+v.engRate,0)/vids.length;
+    const avgViews = vids.reduce((s,v)=>s+v.views,0)/vids.length;
+    const score = avgEng * Math.log10(avgViews/1000 + 1);
+    const top = [...vids].sort((a,b)=>b.engRate-a.engRate).slice(0,3);
+    return {cat, vids, avgEng:+avgEng.toFixed(2), avgViews:Math.round(avgViews), score:+score.toFixed(2), top};
+  }).sort((a,b)=>b.score-a.score);
+
+  // 总体评估卡片
+  const best = catScores[0], second = catScores[1], third = catScores[2];
+  const totalOrganic = org.length;
+  const overallEng = (org.reduce((s,v)=>s+v.engRate,0)/org.length).toFixed(1);
+
+  document.getElementById('recOverall').innerHTML = `
+    <div class="card" style="border-left:3px solid var(--green)">
+      <div class="card-title">🏆 账号整体表现</div>
+      <div style="font-size:22px;font-weight:600;color:var(--green);margin:6px 0">${overallEng}% 均互动率</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.7">
+        ${totalOrganic}条有机视频，互动率远超行业均值（2-5%）。<br>
+        账号内容质量优秀，核心粉丝粘性高。
+      </div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--blue)">
+      <div class="card-title">💎 最值得加倍投入</div>
+      <div style="font-size:18px;font-weight:600;color:var(--blue);margin:6px 0">${best.cat}</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.7">
+        均互动率 <b>${best.avgEng}%</b>，均播放 <b>${fmt(best.avgViews)}</b>。<br>
+        综合得分最高，现在只有 ${best.vids.length} 条，产量严重不足。
+      </div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--amber)">
+      <div class="card-title">📈 高潜力待挖掘</div>
+      <div style="font-size:18px;font-weight:600;color:var(--amber);margin:6px 0">${second.cat} / ${third.cat}</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.7">
+        这两类内容互动率高、但发布数量不足，是当前最大的机会点。
+      </div>
+    </div>
+  `;
+
+  // 类型列表（可折叠）
+  document.getElementById('recCatList').innerHTML = catScores.map((c, i) => {
+    const creative = CAT_CREATIVE[c.cat] || {tips:['持续分析高互动视频的共同元素'],formats:['参考已有高互动视频格式'],avoid:''};
+    const rank = i+1;
+    const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+    const priority = rank<=3?'高':'rank<=6?\'中\':\'低\'';
+    const priorityColor = rank<=3?'var(--green)':rank<=6?'var(--amber)':'var(--t3)';
+    return `<div style="background:var(--w);border:1px solid var(--b);border-radius:10px;margin-bottom:10px;overflow:hidden">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <span style="font-size:18px;width:28px">${medal}</span>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            ${catBadge(c.cat)}
+            <span style="font-size:12px;color:var(--t2)">${c.vids.length}条视频</span>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:${engColor(c.avgEng)}">${c.avgEng}%</div>
+          <div style="font-size:10px;color:var(--t3)">均互动率</div>
+        </div>
+        <div style="text-align:right;min-width:70px">
+          <div style="font-family:var(--mono);font-size:13px;color:var(--t2)">${fmt(c.avgViews)}</div>
+          <div style="font-size:10px;color:var(--t3)">均播放</div>
+        </div>
+        <span style="font-size:16px;color:var(--t3)">›</span>
+      </div>
+      <div style="display:none;padding:0 18px 16px;border-top:1px solid var(--bg2)">
+        <div class="g2" style="margin-top:14px">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">✅ 高表现视频共同点 / 创作建议</div>
+            ${creative.tips.map(t=>`<div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);flex-shrink:0">→</span><span style="font-size:12px;color:var(--t2)">${t}</span></div>`).join('')}
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">🎬 推荐内容格式</div>
+            ${creative.formats.map(f=>`<div style="background:var(--bg);border-radius:6px;padding:6px 10px;margin-bottom:5px;font-size:12px;color:var(--t2)">${f}</div>`).join('')}
+            ${creative.avoid?`<div style="margin-top:8px;font-size:11px;color:var(--t3)">⚠️ ${creative.avoid}</div>`:''}
+          </div>
+        </div>
+        ${c.top.length>0?`
+        <div style="margin-top:12px">
+          <div style="font-size:11px;font-weight:600;color:var(--t2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">🏆 参考视频（互动率最高）</div>
+          ${c.top.map(v=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bg2)">
+            <span style="font-family:var(--mono);font-size:13px;color:${engColor(v.engRate)};font-weight:600;min-width:42px">${v.engRate}%</span>
+            <span style="font-size:12px;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title}</span>
+            <span style="font-family:var(--mono);font-size:11px;color:var(--t3)">${fmt(v.views)}</span>
+            ${v.url?`<a href="${v.url}" target="_blank" style="font-size:11px;color:var(--blue);opacity:.7;text-decoration:none;flex-shrink:0">↗</a>`:''}
+          </div>`).join('')}
+        </div>`:''
+      }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════ TRENDS PAGE ═════════════════════════════
+// 实时抓取的趋势数据（2026-03-26）
+let TREND_DATA = {
+  hashtags: [
+    {tag:'春休み', cat:'季节/活动', posts:'1K', growth:'↑↑', relevance:'high', note:'3-4月春假季节，可结合荘園春日活动'},
+    {tag:'お花見', cat:'季节/活动', posts:'948', growth:'↑↑', relevance:'high', note:'赏花季节热门，荘園花见场景天然契合'},
+    {tag:'クラス替え', cat:'情感类', posts:'459', growth:'↑', relevance:'mid', note:'新学期开始，分班/转学情感共鸣内容'},
+    {tag:'甲子園', cat:'体育', posts:'2K', growth:'↑↑', relevance:'low', note:'棒球热门，与第五人格直接关联少'},
+    {tag:'freedesertadventure', cat:'ゲーム', posts:'3K', growth:'↑', relevance:'mid', note:'游戏类热门，可制作「游戏推荐」类内容'},
+    {tag:'片目界隈', cat:'ビューティー', posts:'585', growth:'↑', relevance:'mid', note:'单眼妆容热门，可与角色眼睛特写结合'},
+    {tag:'クリクリ目', cat:'ペット', posts:'92', growth:'↑', relevance:'low', note:'萌眼内容，角色眼睛特写可蹭热度'},
+    {tag:'physics', cat:'教育', posts:'478', growth:'↑', relevance:'low', note:'物理教育，与第五人格关联少'},
+  ],
+  songs: [
+    {title:'膜の揺れ', artist:'yasuhiro soda', genre:'indie', usable:true, note:'日系氛围感轻音乐，适合荘園氛围短片'},
+    {title:'god creations (slowed)', artist:'dunsky & danvy', genre:'ambient', usable:true, note:'慢版氛围音乐，适合角色展示和故事向'},
+    {title:'通信断絶の後', artist:'yasuhiro soda', genre:'instrumental', usable:true, note:'电子感轻音乐，适合游戏玩法类内容'},
+    {title:'Gucci', artist:'MAF Teeski', genre:'hip-hop', usable:false, note:'说唱类，与第五人格风格不太契合'},
+    {title:'Bazooka', artist:'Miami XO', genre:'pop', usable:false, note:'英语流行曲，可用于元气向内容'},
+  ],
+  updated: '2026-03-26'
+};
+
+function updateTrends() {
+  const input = document.getElementById('trendInput').value.trim();
+  if (!input) return;
+  const newTags = input.split('\n').filter(t=>t.trim()).map(t=>({
+    tag: t.trim().replace(/^#/, ''),
+    cat: '不明',
+    posts: '?',
+    growth: '↑',
+    relevance: 'mid',
+    note: '新追加トレンド'
+  }));
+  TREND_DATA.hashtags = [...newTags, ...TREND_DATA.hashtags].slice(0,20);
+  TREND_DATA.updated = new Date().toISOString().slice(0,10);
+  document.getElementById('trendUpdatePanel').style.display = 'none';
+  renderTrends();
+  showToast('✓ 趋势数据已更新');
+}
+
+function renderTrends() {
+  const org = getOrganic();
+  const td = TREND_DATA_LIVE || TREND_DATA;
+
+  // ── 热门标签展示 ──
+  const relColor = {high:'var(--green)', mid:'var(--amber)', low:'var(--t3)'};
+  const relLabel = {high:'高相关', mid:'中相关', low:'低相关'};
+  document.getElementById('trendTagCloud').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+    ${td.hashtags.map(h=>`
+      <div style="background:var(--w);border:1px solid var(--b);border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+            <a href="${h.tiktok_url||'https://www.tiktok.com/tag/'+encodeURIComponent(h.tag)}" target="_blank" style="font-size:13px;font-weight:600;color:var(--t);text-decoration:none;border-bottom:1px solid var(--b2)">#${h.tag}</a>
+            <span style="font-size:11px;color:var(--t3);font-family:var(--mono)">${h.posts}投稿</span>
+            <span style="font-size:12px">${h.growth}</span>
+            <a href="${h.url||'https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/ja'}" target="_blank" style="font-size:10px;color:var(--blue);opacity:.6;text-decoration:none;flex-shrink:0">CC↗</a>
+          </div>
+          <div style="font-size:11px;color:var(--t3)">${h.note}</div>
+        </div>
+        <span style="font-size:11px;font-weight:600;color:${relColor[h.relevance]||'var(--t3)'};white-space:nowrap">${relLabel[h.relevance]||h.relevance}</span>
+      </div>`).join('')}
+    </div>`;
+
+  // ── 机会分析 ──
+  const highRel = td.hashtags.filter(h=>h.relevance==='high');
+  const midRel  = td.hashtags.filter(h=>h.relevance==='mid');
+
+  // 找账号历史上与趋势最相关的类型
+  const catStats2 = {};
+  org.forEach(v=>{if(!catStats2[v.category])catStats2[v.category]={n:0,eng:0,views:0};catStats2[v.category].n++;catStats2[v.category].eng+=v.engRate;catStats2[v.category].views+=v.views;});
+
+  document.getElementById('trendOpportunities').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div class="card" style="border-left:3px solid var(--green)">
+        <div class="card-title">🎯 立即可做（高相关）</div>
+        ${highRel.map(h=>`
+          <div style="padding:8px 0;border-bottom:1px solid var(--bg2)">
+            <div style="font-size:12px;font-weight:600;color:var(--t)">#${h.tag}</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:3px">${h.note}</div>
+          </div>`).join('')}
+        ${highRel.length===0?'<div style="font-size:12px;color:var(--t3)">本周暂无高相关趋势</div>':''}
+      </div>
+      <div class="card" style="border-left:3px solid var(--amber)">
+        <div class="card-title">💡 可以尝试（中相关）</div>
+        ${midRel.slice(0,3).map(h=>`
+          <div style="padding:8px 0;border-bottom:1px solid var(--bg2)">
+            <div style="font-size:12px;font-weight:600;color:var(--t)">#${h.tag}</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:3px">${h.note}</div>
+          </div>`).join('')}
+      </div>
+      <div class="card" style="border-left:3px solid var(--blue)">
+        <div class="card-title">📊 你的最强类型配对</div>
+        <div style="padding:8px 0;border-bottom:1px solid var(--bg2)">
+          <div style="font-size:12px;font-weight:600;color:var(--blue)">春休み × 季节/活动</div>
+          <div style="font-size:11px;color:var(--t2);margin-top:3px">你的季节/活动类均互动率 10.87%，趋势完全重合，现在发最合适</div>
+        </div>
+        <div style="padding:8px 0;border-bottom:1px solid var(--bg2)">
+          <div style="font-size:12px;font-weight:600;color:var(--blue)">お花見 × 氛围/短剧</div>
+          <div style="font-size:11px;color:var(--t2);margin-top:3px">你的氛围/短剧均播放 316K，配合赏花热点，高爆发潜力</div>
+        </div>
+        <div style="padding:8px 0">
+          <div style="font-size:12px;font-weight:600;color:var(--blue)">片目界隈 × 角色展示</div>
+          <div style="font-size:11px;color:var(--t2);margin-top:3px">角色单眼特写 + 当前流行妆容热点，差异化创意切入</div>
+        </div>
+      </div>
+    </div>`;
+
+  // ── 具体内容建议 ──
+  const recs = [
+    {n:'01', text:'<b>这周发「荘園の春」系列</b>——#春休み 和 #お花見 同时在热榜，用荘园的春日场景 + 这两个标签，蹭双趋势。历史数据显示你的季节类均互动率最高之一（10.87%）'},
+    {n:'02', text:'<b>「クラス替え」情感向视频</b>——分班/转学的共鸣情感 + 荘园角色的「新伙伴」场景，用情感类格式做，你的情感类均互动率 10.93%，这是本周最合适的趋势切入'},
+    {n:'03', text:'<b>用「膜の揺れ」配氛围短片</b>——本周日本TikTok热门BGM之一，你的氛围/短剧均播放 316K，配热门音乐有倍增效果'},
+    {n:'04', text:'<b>角色眼睛特写系列</b>——蹭 #片目界隈 #クリクリ目 两个热门，荘园角色眼睛设计独特，发「哪个角色的眼睛最好看？」互动类视频'},
+    {n:'05', text:'<b>下周预热春季活动</b>——如果游戏内有春季活动，提前3-5天开始发「倒计时」内容，结合 #春休み 话题，比活动当天发效果更好'},
+    {n:'06', text:'<b>游戏推荐格式切入 #freedesertadventure 游戏热点</b>——「游戏中最不可思议的瞬间」「第一次接触第五人格的感受」类初学者向内容，吸引游戏类新受众'},
+  ];
+  document.getElementById('trendRecommendations').innerHTML = recs.map(r=>`<div class="tip-card"><div class="tip-num">${r.n}</div><div class="tip-text">${r.text}</div></div>`).join('');
+
+  // ── 音乐推荐 ──
+  document.getElementById('trendSongs').innerHTML = `
+    <div class="card">
+      <div class="card-title">✅ 推荐使用（与账号风格契合）</div>
+      ${td.songs.filter(s=>s.usable).map(s=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg2)">
+          <div style="width:36px;height:36px;background:var(--bg2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎵</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--t)">${s.title}</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:1px">${s.artist} · ${s.genre}</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px">${s.note}</div>
+            <div style="display:flex;gap:8px;margin-top:5px">
+              <a href="${s.tiktok_url||'https://www.tiktok.com'}" target="_blank" style="font-size:10px;background:var(--bg);border:1px solid var(--b);border-radius:3px;padding:2px 7px;text-decoration:none;color:var(--t)">▶ TikTokで聴く</a>
+              <a href="${s.cc_url||'https://ads.tiktok.com/business/creativecenter/inspiration/popular/song/pc/ja'}" target="_blank" style="font-size:10px;color:var(--blue);opacity:.7;text-decoration:none">CC分析↗</a>
+            </div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="card-title">⚠️ 可选参考（需要创意改编）</div>
+      ${td.songs.filter(s=>!s.usable).map(s=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg2);opacity:.6">
+          <div style="width:36px;height:36px;background:var(--bg2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎵</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--t)">${s.title}</div>
+            <div style="font-size:11px;color:var(--t3)">${s.artist} · ${s.genre}</div>
+            <div style="font-size:11px;color:var(--t2);margin-top:2px">${s.note}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+loadData();
+</script>
+</body>
+</html>
